@@ -1,0 +1,244 @@
+{\rtf1\ansi\ansicpg1252\cocoartf1265\cocoasubrtf210
+{\fonttbl\f0\fnil\fcharset0 Georgia;\f1\fswiss\fcharset0 Helvetica;\f2\fmodern\fcharset0 Courier;
+}
+{\colortbl;\red255\green255\blue255;\red61\green52\blue46;\red234\green54\blue39;\red16\green117\blue149;
+\red38\green38\blue38;\red234\green234\blue234;\red0\green0\blue0;\red109\green109\blue109;\red117\green117\blue117;
+}
+\paperw11900\paperh16840\margl1440\margr1440\vieww10800\viewh8400\viewkind0
+\deftab720
+\pard\pardeftab720\sl880\sa288
+
+\f0\fs72 \cf2 3.1 Git Branching - Branches in a Nutshell\
+\pard\pardeftab720\sl440\sa220
+
+\f1\fs28 \cf2 Nearly every VCS has some form of branching support. Branching means you diverge from the main line of development and continue to do work without messing with that main line. In many VCS tools, this is a somewhat expensive process, often requiring you to create a new copy of your source code directory, which can take a long time for large projects.\
+Some people refer to Git\'92s branching model as its \'93killer feature,\'94 and it certainly sets Git apart in the VCS community. Why is it so special? The way Git branches is incredibly lightweight, making branching operations nearly instantaneous, and switching back and forth between branches generally just as fast. Unlike many other VCSs, Git encourages workflows that branch and merge often, even multiple times in a day. Understanding and mastering this feature gives you a powerful and unique tool and can entirely change the way that you develop.\
+\pard\pardeftab720\sl880
+
+\f0\b\fs36 \cf3 Branches in a Nutshell\
+\pard\pardeftab720\sl440\sa220
+
+\f1\b0\fs28 \cf2 To really understand the way Git does branching, we need to take a step back and examine how Git stores its data.\
+As you may remember from\'a0{\field{\*\fldinst{HYPERLINK "https://git-scm.com/book/en/v2/ch00/ch01-getting-started"}}{\fldrslt \cf4 Getting Started}}, Git doesn\'92t store data as a series of changesets or differences, but instead as a series of snapshots.\
+When you make a commit, Git stores a commit object that contains a pointer to the snapshot of the content you staged. This object also contains the author\'92s name and email, the message that you typed, and pointers to the commit or commits that directly came before this commit (its parent or parents): zero parents for the initial commit, one parent for a normal commit, and multiple parents for a commit that results from a merge of two or more branches.\
+To visualize this, let\'92s assume that you have a directory containing three files, and you stage them all and commit. Staging the files computes a checksum for each one (the SHA-1 hash we mentioned in\'a0{\field{\*\fldinst{HYPERLINK "https://git-scm.com/book/en/v2/ch00/ch01-getting-started"}}{\fldrslt \cf4 Getting Started}}), stores that version of the file in the Git repository (Git refers to them as blobs), and adds that checksum to the staging area:\
+\pard\pardeftab720\sl360
+
+\f2\fs26 \cf5 \cb6 $ git add README test.rb LICENSE\
+$ git commit -m 'The initial commit of my project'\
+\pard\pardeftab720\sl440\sa220
+
+\f1\fs28 \cf2 \cb1 When you create the commit by running\'a0
+\f2 \cf5 \cb6 git commit
+\f1 \cf2 \cb1 , Git checksums each subdirectory (in this case, just the root project directory) and stores those tree objects in the Git repository. Git then creates a commit object that has the metadata and a pointer to the root project tree so it can re-create that snapshot when needed.\
+Your Git repository now contains five objects: one blob for the contents of each of your three files, one tree that lists the contents of the directory and specifies which file names are stored as which blobs, and one commit with the pointer to that root tree and all the commit metadata.\
+\pard\pardeftab720
+
+\fs24 \cf0 \pard\pardeftab720
+
+\f0\fs28 \cf2 \
+Figure 9. A commit and its tree\
+\pard\pardeftab720\sl440\sa220
+
+\f1 \cf2 If you make some changes and commit again, the next commit stores a pointer to the commit that came immediately before it.\
+\pard\pardeftab720
+
+\fs24 \cf0 
+\f0\fs28 \cf2 \
+Figure 10. Commits and their parents\
+\pard\pardeftab720\sl440\sa220
+
+\f1 \cf2 A branch in Git is simply a lightweight movable pointer to one of these commits. The default branch name in Git is\'a0
+\f2 \cf5 \cb6 master
+\f1 \cf2 \cb1 . As you start making commits, you\'92re given a\'a0
+\f2 \cf5 \cb6 master
+\f1 \cf2 \cb1 \'a0branch that points to the last commit you made. Every time you commit, it moves forward automatically.\
+
+\itap1\trowd \taflags1 \trgaph108\trleft-108 \tamart600 \tamarb600 \trbrdrt\brdrnil \trbrdrl\brdrnil \trbrdrb\brdrs\brdrw20\brdrcf9 \trbrdrr\brdrnil 
+\clvertalc \clshdrawnil \clwWidth3280\clftsWidth3 \clbrdrt\brdrnil \clbrdrl\brdrnil \clbrdrb\brdrnil \clbrdrr\brdrnil \clpadt120 \clpadl120 \clpadb120 \clpadr120 \gaph\cellx4320
+\clvertalc \clshdrawnil \clwWidth12400\clftsWidth3 \clbrdrt\brdrnil \clbrdrl\brdrnil \clbrdrb\brdrnil \clbrdrr\brdrnil \clpadt120 \clpadl120 \clpadb120 \clpadr120 \gaph\cellx8640
+\pard\intbl\itap1\pardeftab720\sl280
+
+\fs24 \cf0 Note\cell 
+\pard\intbl\itap1\pardeftab720\sl280\sa220
+\cf0 The \'93master\'94 branch in Git is not a special branch. It is exactly like any other branch. The only reason nearly every repository has one is that the\'a0
+\f2 \cf5 \cb6 git init
+\f1 \cf0 \cb1 \'a0command creates it by default and most people don\'92t bother to change it.\cell \lastrow\row
+\pard\pardeftab720
+\cf0 
+\f0\fs28 \cf2 \
+Figure 11. A branch and its commit history\
+\pard\pardeftab720\sl660
+
+\b\fs32 \cf2 Creating a New Branch\
+\pard\pardeftab720\sl440\sa220
+
+\f1\b0\fs28 \cf2 What happens if you create a new branch? Well, doing so creates a new pointer for you to move around. Let\'92s say you create a new branch called testing. You do this with the\'a0
+\f2 \cf5 \cb6 git branch
+\f1 \cf2 \cb1 \'a0command:\
+\pard\pardeftab720\sl360
+
+\f2\fs26 \cf5 \cb6 $ git branch testing\
+\pard\pardeftab720\sl440\sa220
+
+\f1\fs28 \cf2 \cb1 This creates a new pointer to the same commit you\'92re currently on.\
+\pard\pardeftab720
+
+\fs24 \cf0 
+\f0\fs28 \cf2 \
+Figure 12. Two branches pointing into the same series of commits\
+\pard\pardeftab720\sl440\sa220
+
+\f1 \cf2 How does Git know what branch you\'92re currently on? It keeps a special pointer called\'a0
+\f2 \cf5 \cb6 HEAD
+\f1 \cf2 \cb1 . Note that this is a lot different than the concept of\'a0
+\f2 \cf5 \cb6 HEAD
+\f1 \cf2 \cb1 \'a0in other VCSs you may be used to, such as Subversion or CVS. In Git, this is a pointer to the local branch you\'92re currently on. In this case, you\'92re still on\'a0
+\f2 \cf5 \cb6 master
+\f1 \cf2 \cb1 . The\'a0
+\f2 \cf5 \cb6 git branch
+\f1 \cf2 \cb1 \'a0command only\'a0
+\i created
+\i0 \'a0a new branch\uc0\u8201 \'97\u8201 it didn\'92t switch to that branch.\
+\pard\pardeftab720
+
+\fs24 \cf0 
+\f0\fs28 \cf2 \
+Figure 13. HEAD pointing to a branch\
+\pard\pardeftab720\sl440\sa220
+
+\f1 \cf2 You can easily see this by running a simple\'a0
+\f2 \cf5 \cb6 git log
+\f1 \cf2 \cb1 \'a0command that shows you where the branch pointers are pointing. This option is called\'a0
+\f2 \cf5 \cb6 --decorate
+\f1 \cf2 \cb1 .\
+\pard\pardeftab720\sl360
+
+\f2\fs26 \cf5 \cb6 $ git log --oneline --decorate\
+f30ab (HEAD -> master, testing) add feature #32 - ability to add new formats to the central interface\
+34ac2 Fixed bug #1328 - stack overflow under certain conditions\
+98ca9 The initial commit of my project\
+\pard\pardeftab720\sl440\sa220
+
+\f1\fs28 \cf2 \cb1 You can see the \'93master\'94 and \'93testing\'94 branches that are right there next to the\'a0
+\f2 \cf5 \cb6 f30ab
+\f1 \cf2 \cb1 \'a0commit.\
+\pard\pardeftab720\sl660
+
+\f0\b\fs32 \cf2 Switching Branches\
+\pard\pardeftab720\sl440\sa220
+
+\f1\b0\fs28 \cf2 To switch to an existing branch, you run the\'a0
+\f2 \cf5 \cb6 git checkout
+\f1 \cf2 \cb1 \'a0command. Let\'92s switch to the new\'a0
+\f2 \cf5 \cb6 testing
+\f1 \cf2 \cb1 branch:\
+\pard\pardeftab720\sl360
+
+\f2\fs26 \cf5 \cb6 $ git checkout testing\
+\pard\pardeftab720\sl440\sa220
+
+\f1\fs28 \cf2 \cb1 This moves\'a0
+\f2 \cf5 \cb6 HEAD
+\f1 \cf2 \cb1 \'a0to point to the\'a0
+\f2 \cf5 \cb6 testing
+\f1 \cf2 \cb1 \'a0branch.\
+\pard\pardeftab720
+
+\fs24 \cf0 
+\f0\fs28 \cf2 \
+Figure 14. HEAD points to the current branch\
+\pard\pardeftab720\sl440\sa220
+
+\f1 \cf2 What is the significance of that? Well, let\'92s do another commit:\
+\pard\pardeftab720\sl360
+
+\f2\fs26 \cf5 \cb6 $ vim test.rb\
+$ git commit -a -m 'made a change'\
+\pard\pardeftab720
+
+\f1\fs24 \cf0 \cb1 
+\f0\fs28 \cf2 \
+Figure 15. The HEAD branch moves forward when a commit is made\
+\pard\pardeftab720\sl440\sa220
+
+\f1 \cf2 This is interesting, because now your\'a0
+\f2 \cf5 \cb6 testing
+\f1 \cf2 \cb1 \'a0branch has moved forward, but your\'a0
+\f2 \cf5 \cb6 master
+\f1 \cf2 \cb1 \'a0branch still points to the commit you were on when you ran\'a0
+\f2 \cf5 \cb6 git checkout
+\f1 \cf2 \cb1 \'a0to switch branches. Let\'92s switch back to the\'a0
+\f2 \cf5 \cb6 master
+\f1 \cf2 \cb1 \'a0branch:\
+\pard\pardeftab720\sl360
+
+\f2\fs26 \cf5 \cb6 $ git checkout master\
+\pard\pardeftab720
+
+\f1\fs24 \cf0 \cb1 
+\f0\fs28 \cf2 \
+Figure 16. HEAD moves when you checkout\
+\pard\pardeftab720\sl440\sa220
+
+\f1 \cf2 That command did two things. It moved the HEAD pointer back to point to the\'a0
+\f2 \cf5 \cb6 master
+\f1 \cf2 \cb1 \'a0branch, and it reverted the files in your working directory back to the snapshot that\'a0
+\f2 \cf5 \cb6 master
+\f1 \cf2 \cb1 \'a0points to. This also means the changes you make from this point forward will diverge from an older version of the project. It essentially rewinds the work you\'92ve done in your\'a0
+\f2 \cf5 \cb6 testing
+\f1 \cf2 \cb1 \'a0branch so you can go in a different direction.\
+
+\itap1\trowd \taflags1 \trgaph108\trleft-108 \tamart600 \tamarb600 \trbrdrt\brdrnil \trbrdrl\brdrnil \trbrdrb\brdrs\brdrw20\brdrcf9 \trbrdrr\brdrnil 
+\clvertalc \clshdrawnil \clwWidth3280\clftsWidth3 \clbrdrt\brdrnil \clbrdrl\brdrnil \clbrdrb\brdrnil \clbrdrr\brdrnil \clpadt120 \clpadl120 \clpadb120 \clpadr120 \gaph\cellx4320
+\clvertalc \clshdrawnil \clwWidth12400\clftsWidth3 \clbrdrt\brdrnil \clbrdrl\brdrnil \clbrdrb\brdrnil \clbrdrr\brdrnil \clpadt120 \clpadl120 \clpadb120 \clpadr120 \gaph\cellx8640
+\pard\intbl\itap1\pardeftab720\sl280
+
+\fs24 \cf0 Note\cell 
+\pard\intbl\itap1\pardeftab720\sl280
+\cf0 Switching branches changes files in your working directory\
+\pard\intbl\itap1\pardeftab720\sl280\sa220
+\cf0 It\'92s important to note that when you switch branches in Git, files in your working directory will change. If you switch to an older branch, your working directory will be reverted to look like it did the last time you committed on that branch. If Git cannot do it cleanly, it will not let you switch at all.\cell \lastrow\row
+\pard\pardeftab720\sl440\sa220
+
+\fs28 \cf2 Let\'92s make a few changes and commit again:\
+\pard\pardeftab720\sl360
+
+\f2\fs26 \cf5 \cb6 $ vim test.rb\
+$ git commit -a -m 'made other changes'\
+\pard\pardeftab720\sl440\sa220
+
+\f1\fs28 \cf2 \cb1 Now your project history has diverged (see\'a0{\field{\*\fldinst{HYPERLINK "https://git-scm.com/book/en/v2/ch00/divergent_history"}}{\fldrslt \cf4 Divergent history}}). You created and switched to a branch, did some work on it, and then switched back to your main branch and did other work. Both of those changes are isolated in separate branches: you can switch back and forth between the branches and merge them together when you\'92re ready. And you did all that with simple\'a0
+\f2 \cf5 \cb6 branch
+\f1 \cf2 \cb1 ,\'a0
+\f2 \cf5 \cb6 checkout
+\f1 \cf2 \cb1 , and\'a0
+\f2 \cf5 \cb6 commit
+\f1 \cf2 \cb1 commands.\
+\pard\pardeftab720
+
+\fs24 \cf0 
+\f0\fs28 \cf2 \
+Figure 17. Divergent history\
+\pard\pardeftab720\sl440\sa220
+
+\f1 \cf2 You can also see this easily with the\'a0
+\f2 \cf5 \cb6 git log
+\f1 \cf2 \cb1 \'a0command. If you run\'a0
+\f2 \cf5 \cb6 git log --oneline --decorate --graph --all
+\f1 \cf2 \cb1 \'a0it will print out the history of your commits, showing where your branch pointers are and how your history has diverged.\
+\pard\pardeftab720\sl360
+
+\f2\fs26 \cf5 \cb6 $ git log --oneline --decorate --graph --all\
+* c2b9e (HEAD, master) made other changes\
+| * 87ab2 (testing) made a change\
+|/\
+* f30ab add feature #32 - ability to add new formats to the\
+* 34ac2 fixed bug #1328 - stack overflow under certain conditions\
+* 98ca9 initial commit of my project\
+\pard\pardeftab720\sl440\sa220
+
+\f1\fs28 \cf2 \cb1 Because a branch in Git is actually a simple file that contains the 40 character SHA-1 checksum of the commit it points to, branches are cheap to create and destroy. Creating a new branch is as quick and simple as writing 41 bytes to a file (40 characters and a newline).\
+This is in sharp contrast to the way most older VCS tools branch, which involves copying all of the project\'92s files into a second directory. This can take several seconds or even minutes, depending on the size of the project, whereas in Git the process is always instantaneous. Also, because we\'92re recording the parents when we commit, finding a proper merge base for merging is automatically done for us and is generally very easy to do. These features help encourage developers to create and use branches often.\
+Let\'92s see why you should do so.\
+}
